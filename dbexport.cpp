@@ -127,17 +127,20 @@ QString to26AlphabetString(int data)
 	QChar ch = data + 0x40;//A对应0x41
 	return QString(ch);
 }
-void convertToColName(int data, QString &res)
+void convertToColName(int data, QString &res)//有bug，采用第二种方式计算excel列号excelColIndexToStr
 {
 	//qDebug()<<"covertdata:"<<data;
 	Q_ASSERT(data>0 && data<65535);
 	
 	//Q_ASSERT(data>0);
+
 	int tempData = data / 26;
+	//std::cout<<"tempData:"<<tempData<<std::endl;
 	//qDebug()<<"tempData:"<<tempData;
-	if(tempData > 0)
+	if(tempData > 1)
 	{
 		int mode = data % 26;
+		//std::cout<<"mode:"<<mode<<std::endl;
 		if(mode==0) 
 		{
 			res=(to26AlphabetString(26)+res);
@@ -154,6 +157,18 @@ void convertToColName(int data, QString &res)
 		res=(to26AlphabetString(data)+res);
 	}
 }
+
+void  excelColIndexToStr(int columnIndex,QString &columnStr) {
+	     if (columnIndex <= 0) columnStr="";
+	     columnIndex--;
+	     do {
+	             if (columnStr.length() > 0) 
+	                 columnIndex--;
+	             columnStr = ((char) (columnIndex % 26 + (int) 'A')) + columnStr;
+	             columnIndex = (int) ((columnIndex - columnIndex % 26) / 26);
+	         } while (columnIndex > 0);
+}
+
 void Excel_SetCell(QAxObject *worksheet,int column,int row,QColor color,QString text)
 {
 	QAxObject *cell = worksheet->querySubObject("Cells(int,int)", row, column);
@@ -313,7 +328,8 @@ void dbexport::exportex()
 		int col = cells.at(0).size()+3;
 		//qDebug()<<col;
 		QString rangStr;
-		convertToColName(col,rangStr);//列号
+		//convertToColName(col,rangStr);//列号
+		excelColIndexToStr(col,rangStr);
 		rangStr += QString::number(2+i*2+1);//行号
 		rangStr = "D"+QString::number(2+i*2)+":"+ rangStr;
 		qDebug()<<rangStr;
