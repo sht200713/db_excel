@@ -7,7 +7,7 @@
 #include "OptDlg.h"
 dbexport::dbexport()
 {
-	model = new QSqlQueryModel();
+	m_model = new QSqlQueryModel();
 	db = QSqlDatabase::addDatabase("QSQLITE");
 }
  dbexport::~dbexport()
@@ -49,26 +49,29 @@ void dbexport::opendb()
 	}
 	if (b_sgns==0)
 	{
-		model->setQuery(QString("select patient.NAME,screws.NAME as SNAME,screws.LEN,screws.D,screws.PLOTX,screws.PLOTY from screws left join surgerys on surgerys.ID=screws.SURGERY left join patient on surgerys.PID=patient.ID"));
-		model->setHeaderData(0, Qt::Horizontal, QObject::tr("姓名"));
-		model->setHeaderData(1, Qt::Horizontal, QObject::tr("钉子位置"));
-		model->setHeaderData(2, Qt::Horizontal, QObject::tr("钉子长度"));
-		model->setHeaderData(3, Qt::Horizontal, QObject::tr("钉子直径"));
-		tableView->setModel(model);
+		m_model->setQuery(QString("select patient.NAME,screws.NAME as SNAME,screws.LEN,screws.D,screws.PLOTX,screws.PLOTY from screws left join surgerys on surgerys.ID=screws.SURGERY left join patient on surgerys.PID=patient.ID"));
+		m_model->setHeaderData(0, Qt::Horizontal, QObject::tr("姓名"));
+		m_model->setHeaderData(1, Qt::Horizontal, QObject::tr("钉子位置"));
+		m_model->setHeaderData(2, Qt::Horizontal, QObject::tr("钉子长度"));
+		m_model->setHeaderData(3, Qt::Horizontal, QObject::tr("钉子直径"));
+		tableView->setModel(m_model);
 		tableView->setEditTriggers(QAbstractItemView::NoEditTriggers);
 		tableView->horizontalHeader()->setStretchLastSection(true);
 		tableView->horizontalHeader()->setResizeMode(QHeaderView::Stretch);
 		tableView->setColumnHidden(4,true);
 		tableView->setColumnHidden(5,true);
-	}else
+	}else if(b_sgns==1)
 	{
-		model->setQuery(QString("select NAME,POS,TIME,PLOTY from gsns"));
-		model->setHeaderData(0, Qt::Horizontal, QObject::tr("姓名"));
-		model->setHeaderData(1, Qt::Horizontal, QObject::tr("钉子位置"));
-		tableView->setModel(model);
+		/*m_model->setQuery(QString("select NAME,POS,TIME,PLOTY from gsns"));*/
+		QString querys="select patient.NAME,screws.NAME as SNAME,screws.LEN,screws.D,screws.PLOTX,screws.PLOTY,screws.PLOTT,screws.PLOTS,screws.PLOTD from screws left join surgerys on surgerys.ID=screws.SURGERY left join patient on surgerys.PID=patient.ID";
+		m_model->setQuery(querys);
+		m_model->setHeaderData(0, Qt::Horizontal, QObject::tr("姓名"));
+		m_model->setHeaderData(1, Qt::Horizontal, QObject::tr("钉子位置"));
+		tableView->setModel(m_model);
 		tableView->setEditTriggers(QAbstractItemView::NoEditTriggers);
 		tableView->horizontalHeader()->setStretchLastSection(true);
 		tableView->horizontalHeader()->setResizeMode(QHeaderView::Stretch);
+		for (int i=0;i<5;i++) tableView->setColumnHidden(4+i,true);
 	}
 
 }
@@ -81,10 +84,10 @@ void dbexport::exporttxt()
 	std::ofstream ofile;
 	ofile.open((sexcel+"11.txt").toStdString().c_str(), std::ios::out);
 	if(!ofile) return ;
-	for(int i=0; i<this->model->rowCount(); i++){
+	for(int i=0; i<this->m_model->rowCount(); i++){
 		xs.clear();
-		y1.clear();
-		record = model->record(i);
+		yl.clear();
+		record = m_model->record(i);
 		//qDebug()<<record.fieldName(0)<<record.fieldName(1)<<record.fieldName(2);
 		patienName=record.value("NAME").toString();
 		dingName=record.value("SNAME").toString();
@@ -93,7 +96,7 @@ void dbexport::exporttxt()
 		QDataStream streamx(plotx);
 		streamx >> xs;
 		QDataStream streamy(ploty);
-		streamy >> y1;
+		streamy >> yl;
 		int vsize=xs.size();
 		std::cout<<"vsize:"<<vsize<<std::endl;
 		if(vsize<1)continue;
@@ -116,7 +119,7 @@ void dbexport::exporttxt()
 				ofile<<"\n";
 				ofile<<patienName.toStdString().c_str()<<" "<<dingName.toStdString().c_str()<<" "<<"压力";
 			}
-			ofile<<" "<<y1[j];
+			ofile<<" "<<yl[j];
 		}
 		ofile<<"\n";
 	}
@@ -240,18 +243,17 @@ void dbexport::exportex()
 	QAxObject *workbooks = excel->querySubObject("WorkBooks");
 	QString sexcel=le_excel->text()+"db.xlsx";
 	QSqlRecord record;
-	QByteArray plotx,ploty;
+	QByteArray plotx,ploty,plott,plots,plotd;
 	QString patienName,dingName;
 	QAxObject* workbook = workbooks->querySubObject("Open(const QString&)",QDir::toNativeSeparators(ExcelFile));
 	excel->setProperty("Caption", "db_Excel");      //标题为Qt Excel
 	QAxObject *work_book = excel->querySubObject("ActiveWorkBook");
 	QAxObject *worksheet = work_book->querySubObject("Sheets(int)",1); 
 	int nn=2;
-	for(int i=0; i<this->model->rowCount(); i++){
-	//for(int i=0; i<1; i++){
+	for(int i=0; i<this->m_model->rowCount(); i++){
 		xs.clear();
-		y1.clear();
-		record = model->record(i);
+		yl.clear();
+		record = m_model->record(i);
 		//qDebug()<<record.fieldName(0)<<record.fieldName(1)<<record.fieldName(2);
 		if (b_sgns==0)
 		{
@@ -262,7 +264,7 @@ void dbexport::exportex()
 			QDataStream streamx(plotx);
 			streamx >> xs;
 			QDataStream streamy(ploty);
-			streamy >> y1;
+			streamy >> yl;
 			int vsize=xs.size();
 			std::cout<<"vsize:"<<vsize<<std::endl;
 			Excel_SetCell(worksheet,1,i+nn,QColor(0,0,255),patienName);
@@ -271,26 +273,45 @@ void dbexport::exportex()
 			nn++;
 			Excel_SetCell(worksheet,3,i+nn,QColor(0,0,255),"压力");
 			if(vsize<1)continue;
-		}else
+		}else if (b_sgns==1)
 		{
+
+			yt.clear();
+			ys.clear();
+			yd.clear();
+	
+
 			patienName=record.value("NAME").toString();
 			dingName=record.value("POS").toString();
 			plotx=record.value("TIME").toByteArray();
 			ploty=record.value("PLOTY").toByteArray();
+			plott=record.value("PLOTT").toByteArray();
+			plots=record.value("PLOTS").toByteArray();
+			plotd=record.value("PLOTD").toByteArray();
+
 			QDataStream streamx(plotx);
-			streamx >> xs;
+			streamx >> xs[0];
+
+
 			QDataStream streamy(ploty);
-			streamy >> y1;
+			streamy >> yl[0];
+			QDataStream streamt(plott);
+			streamt >> yt[0];
+			QDataStream streams(plots);
+			streams >> ys;
+			QDataStream streamd(plotd);
+			streamd >> yd;
 			int vsize=xs.size();
 			std::cout<<"vsize:"<<vsize<<std::endl;
-			Excel_SetCell(worksheet,1,i+nn,QColor(0,0,255),patienName);
-			Excel_SetCell(worksheet,2,i+nn,QColor(0,0,255),dingName);
-			Excel_SetCell(worksheet,3,i+nn,QColor(0,0,255),"时间");
-			nn++;
-			Excel_SetCell(worksheet,3,i+nn,QColor(0,0,255),"压力");
+			Excel_SetCell(worksheet,1,i*5+2,QColor(0,0,255),patienName);
+			Excel_SetCell(worksheet,2,i*5+2,QColor(0,0,255),dingName);
+			Excel_SetCell(worksheet,3,i*5+2,QColor(0,0,255),"行程");
+			Excel_SetCell(worksheet,3,i*5+3,QColor(0,0,255),"压力");
+			Excel_SetCell(worksheet,3,i*5+4,QColor(0,0,255),"扭力");
+			Excel_SetCell(worksheet,3,i*5+5,QColor(0,0,255),"速度");
+			Excel_SetCell(worksheet,3,i*5+6,QColor(0,0,255),"转速");
 			if(vsize<1)continue;
 		}
-
 		//单个单元格存储
 #if 0	
 		for (int j=0;j<vsize;j++) 
@@ -312,26 +333,55 @@ void dbexport::exportex()
 #else 
 		//批量存储
 		//QAxObject *user_range = worksheet->querySubObject("Range(const QString&)","A4:I106");
-
-		QList<QList<QVariant>> cells;
-		QList<QVariant> clodata1,clodata2;
-		int xssize=xs.size();
-		for (int jj=0;jj<xssize;jj++)
-		{
-			clodata1.push_back(xs[jj]);
-			clodata2.push_back(y1[jj]);
-		}	
-		cells.append(clodata1);
-		cells.append(clodata2);
-		
-		int row = cells.size();
-		int col = cells.at(0).size()+3;
-		//qDebug()<<col;
 		QString rangStr;
-		//convertToColName(col,rangStr);//列号
-		excelColIndexToStr(col,rangStr);
-		rangStr += QString::number(2+i*2+1);//行号
-		rangStr = "D"+QString::number(2+i*2)+":"+ rangStr;
+		QList<QList<QVariant>> cells;
+		if (b_sgns==1)
+		{
+			QList<QVariant> clodata1,clodata2,clodatat,clodatas,clodatad;
+			int xssize=xs.size();
+			for (int jj=0;jj<xssize;jj++)
+			{
+				clodata1.push_back(xs[jj]);
+				clodata2.push_back(yl[jj]);
+				clodatat.push_back(yt[jj]);
+				clodatas.push_back(ys[jj]);
+				clodatad.push_back(yd[jj]);
+			}	
+			cells.append(clodata1);
+			cells.append(clodata2);
+			cells.append(clodatat);
+			cells.append(clodatas);
+			cells.append(clodatad);
+			int row = cells.size();
+			int col = cells.at(0).size()+3;
+			//qDebug()<<col;
+			
+			//convertToColName(col,rangStr);//列号
+			excelColIndexToStr(col,rangStr);
+			rangStr += QString::number(2+i*5+5);//行号
+			rangStr = "D"+QString::number(2+i*5)+":"+ rangStr;
+
+		}else
+		{	
+			QList<QVariant> clodata1,clodata2;
+			int xssize=xs.size();
+			for (int jj=0;jj<xssize;jj++)
+			{
+				clodata1.push_back(xs[jj]);
+				clodata2.push_back(yl[jj]);
+			}	
+			cells.append(clodata1);
+			cells.append(clodata2);
+
+			int row = cells.size();
+			int col = cells.at(0).size()+3;
+			//qDebug()<<col;
+			//convertToColName(col,rangStr);//列号
+			excelColIndexToStr(col,rangStr);
+			rangStr += QString::number(2+i*2+1);//行号
+			rangStr = "D"+QString::number(2+i*2)+":"+ rangStr;
+
+		}
 		qDebug()<<rangStr;
 		QAxObject *range = worksheet->querySubObject("Range(const QString&)",rangStr);
 		if(NULL == range || range->isNull()) return;

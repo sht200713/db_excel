@@ -6,7 +6,7 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>222</width>
+    <width>232</width>
     <height>169</height>
    </rect>
   </property>
@@ -21,7 +21,7 @@
        <rect>
         <x>10</x>
         <y>0</y>
-        <width>191</width>
+        <width>201</width>
         <height>121</height>
        </rect>
       </property>
@@ -48,13 +48,13 @@
        <property name="geometry">
         <rect>
          <x>10</x>
-         <y>50</y>
-         <width>89</width>
+         <y>60</y>
+         <width>181</width>
          <height>16</height>
         </rect>
        </property>
        <property name="text">
-        <string>时间--压力</string>
+        <string>行程-压力，扭力，速度，转速</string>
        </property>
       </widget>
      </widget>

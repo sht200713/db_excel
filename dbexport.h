@@ -17,9 +17,12 @@ public:
 	void init();
 public:
 	QVector<double> xs;
-	QVector<double> y1;
+	QVector<double> yl;
+	QVector<double> yt;
+	QVector<double> ys;
+	QVector<double> yd;
 	QSqlDatabase db;
-	QSqlQueryModel *model;
+	QSqlQueryModel *m_model;
 private:
 	bool createConnection(QString);
 	short b_sgns;
